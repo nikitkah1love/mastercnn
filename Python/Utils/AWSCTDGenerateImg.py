@@ -48,20 +48,20 @@ def plot_confusion_matrix(cm, classes,
 	plt.savefig(file, dpi=300, format='svg')
 
 def plot_history(history, fileAcc, fileLoss):
-	# Plot training & validation accuracy values
-	plt.plot(history.history['acc'])
-	#plt.plot(history.history['val_accuracy'])
-	plt.title('Model accuracy')
-	plt.ylabel('Accuracy')
-	plt.xlabel('Epoch')
-	plt.legend(['a', 'b', 'c', 'd', 'e'], loc='bottom right')
-	plt.savefig(fileAcc, dpi=300, format='svg')
+    # Plot training & validation accuracy values
+    plt.plot(history.history['accuracy'])  # Updated from 'acc' to 'accuracy'
+    # plt.plot(history.history['val_accuracy'])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['a', 'b', 'c', 'd', 'e'], loc='bottom right')
+    plt.savefig(fileAcc, dpi=300, format='svg')
 
-	# # Plot training & validation loss values
-	# plt.plot(history.history['loss'])
-	# #plt.plot(history.history['val_loss'])
-	# plt.title('Model loss')
-	# plt.ylabel('Loss')
-	# plt.xlabel('Epoch')
-	# plt.legend(['Train', 'Test'], loc='upper left')
-	# plt.savefig(fileLoss, dpi=150)
+    # Plot training & validation loss values
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Model loss')
+    # plt.ylabel('Loss')
+    # plt.xlabel('Epoch')
+    # plt.legend(['Train', 'Test'], loc='upper left')
+    # plt.savefig(fileLoss, dpi=150)

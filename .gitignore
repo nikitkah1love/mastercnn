@@ -1,30 +1,30 @@
-bin/
-.vs/
-*.bsc
-*.tlog
-*.sbr
-*.obj
-*.exp
-*.ipch
-*.lastbuildstate
-*.log
-*.pdb
-*.rc
-*.user
-*.manifest
-*.opensdf
-*.unsuccessfulbuild
-*.suo
-*.sdf
-*.res
-*.pch
-*.ilk
-*.cache
-*.idb
-*.exe
-*.txt
-DBUtilsImplD.lib
-DBUtilsImpl.lib
-DBUtilsImplD.dll
-DBUtilsImpl.dll
-/DBUtils/*.opendb
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Data files
+*.db
+*.7z
+CSV/
+
+# Results (generated files)
+Python/ACCLOSS/*.svg
+Python/CM/*.svg
+Python/Model/*.svg
+Python/ROC/*.svg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
