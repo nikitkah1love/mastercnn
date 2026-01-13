@@ -17,18 +17,18 @@ def AddLastDenseLayer(merged, bCategorical, nClassCount):
 def CreateNewGRU(nWordCount, nClassCount, nParametersCount, bCategorical):
     print("GRU-FCN")
     inputs = Input(shape=(nParametersCount, nWordCount))
-    conv1 = Conv1D(filters=128, kernel_size=8, padding='same', activation='tanh', kernel_initializer='he_uniform')(inputs)
-    BN1 = BatchNormalization(epsilon=0.01)(conv1)
+    conv1 = Conv1D(filters=128, kernel_size=8, padding='same', activation='tanh', kernel_initializer='glorot_uniform')(inputs)
+    BN1 = BatchNormalization(epsilon=1e-6)(conv1)
     relu1 = ReLU()(BN1)
-    conv2 = Conv1D(filters=256, kernel_size=5, padding='same', activation='tanh', kernel_initializer='he_uniform')(relu1)
-    BN2 = BatchNormalization(epsilon=0.01)(conv2)
+    conv2 = Conv1D(filters=256, kernel_size=5, padding='same', activation='tanh', kernel_initializer='glorot_uniform')(relu1)
+    BN2 = BatchNormalization(epsilon=1e-6)(conv2)
     relu2 = ReLU()(BN2)
-    conv3 = Conv1D(filters=128, kernel_size=3, padding='same', activation='tanh', kernel_initializer='he_uniform')(relu2)
-    BN3 = BatchNormalization(epsilon=0.01)(conv3)
+    conv3 = Conv1D(filters=128, kernel_size=3, padding='same', activation='tanh', kernel_initializer='glorot_uniform')(relu2)
+    BN3 = BatchNormalization(epsilon=1e-6)(conv3)
     relu3 = ReLU()(BN3)
     pool1 = GlobalAveragePooling1D()(relu3)
-    gru2 = GRU(units=8)(inputs)  # Replaced CuDNNGRU with GRU
-    dropout = Dropout(0.8)(gru2)
+    gru2 = GRU(units=8, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal')(inputs)
+    dropout = Dropout(0.5)(gru2)  # Зменшений dropout
     merged = concatenate([pool1, dropout])
     outputs = AddLastDenseLayer(merged, bCategorical, nClassCount)
     model = Model(inputs=[inputs], outputs=outputs)
@@ -56,18 +56,18 @@ def CreateNew(nWordCount, nClassCount, nParametersCount, bCategorical):
 def CreateNewLSTM(nWordCount, nClassCount, nParametersCount, bCategorical):
     print("LSTM-FCN")
     inputs = Input(shape=(nParametersCount, nWordCount))
-    conv1 = Conv1D(filters=128, kernel_size=8, padding='same', activation='tanh')(inputs)
-    BN1 = BatchNormalization(epsilon=0.01)(conv1)
+    conv1 = Conv1D(filters=128, kernel_size=8, padding='same', activation='tanh', kernel_initializer='glorot_uniform')(inputs)
+    BN1 = BatchNormalization(epsilon=1e-6)(conv1)
     relu1 = ReLU()(BN1)
-    conv2 = Conv1D(filters=256, kernel_size=5, padding='same', activation='tanh')(relu1)
-    BN2 = BatchNormalization(epsilon=0.01)(conv2)
+    conv2 = Conv1D(filters=256, kernel_size=5, padding='same', activation='tanh', kernel_initializer='glorot_uniform')(relu1)
+    BN2 = BatchNormalization(epsilon=1e-6)(conv2)
     relu2 = ReLU()(BN2)
-    conv3 = Conv1D(filters=128, kernel_size=3, padding='same', activation='tanh')(relu2)
-    BN3 = BatchNormalization(epsilon=0.01)(conv3)
+    conv3 = Conv1D(filters=128, kernel_size=3, padding='same', activation='tanh', kernel_initializer='glorot_uniform')(relu2)
+    BN3 = BatchNormalization(epsilon=1e-6)(conv3)
     relu3 = ReLU()(BN3)
     pool1 = GlobalAveragePooling1D()(relu3)
-    lstm3 = LSTM(units=nParametersCount)(inputs)  # Replaced CuDNNLSTM with LSTM
-    dropout = Dropout(0.8)(lstm3)
+    lstm3 = LSTM(units=nParametersCount, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal')(inputs)
+    dropout = Dropout(0.5)(lstm3)  # Зменшений dropout
     merged = concatenate([pool1, dropout])
     outputs = AddLastDenseLayer(merged, bCategorical, nClassCount)
     model = Model(inputs=[inputs], outputs=outputs)
@@ -125,10 +125,13 @@ def CreateCNNS(nWordCount, nClassCount, nParametersCount, bCategorical):
     
     return model
 	
-def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategorical):
+def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategorical, fLearningRate=0.001, bGradientClipping=True):
     print("nWordCount: " + str(nWordCount))
     print("nClassCount: " + str(nClassCount))
     print("nParametersCount: " + str(nParametersCount))
+    print(f"Learning Rate: {fLearningRate}")
+    print(f"Gradient Clipping: {bGradientClipping}")
+    
     model = Sequential()
     if sModel == "AWSCTD-CNN-LSTM":
         model = CreateOLDLSTM(nWordCount, nClassCount, nParametersCount, bCategorical)
@@ -145,9 +148,30 @@ def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategori
     elif sModel == "AWSCTD-CNN-S":
         model = CreateCNNS(nWordCount, nClassCount, nParametersCount, bCategorical)
 
+    # Стабільний оптимізатор для GPU/CPU сумісності
+    optimizer_kwargs = {
+        'learning_rate': fLearningRate,
+        'beta_1': 0.9,
+        'beta_2': 0.999,
+        'epsilon': 1e-7,  # Збільшений epsilon для стабільності
+    }
+    
+    if bGradientClipping:
+        optimizer_kwargs['clipnorm'] = 1.0  # Gradient clipping для запобігання explosion
+    
+    optimizer = optimizers.Adam(**optimizer_kwargs)
+
     if bCategorical:
-        model.compile(loss='categorical_crossentropy', optimizer="Adam", metrics=['categorical_accuracy'])
+        model.compile(
+            loss='categorical_crossentropy', 
+            optimizer=optimizer, 
+            metrics=['categorical_accuracy']
+        )
     else:
-        model.compile(loss='binary_crossentropy', optimizer="Adam", metrics=['accuracy'])
+        model.compile(
+            loss='binary_crossentropy', 
+            optimizer=optimizer, 
+            metrics=['accuracy']
+        )
         
     return model

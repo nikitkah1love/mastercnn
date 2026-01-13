@@ -46,6 +46,30 @@ sDevice = auto    # auto, cpu, gpu
 python test_device.py
 ```
 
+## Вирішення проблем
+
+### NaN Loss на GPU
+Якщо на GPU отримуєте `loss: nan`, використовуйте стабільну конфігурацію:
+
+```bash
+# Копіюйте стабільний конфіг для GPU
+cp config_gpu_stable.ini config.ini
+
+# Або вручну встановіть в config.ini:
+# fLearningRate = 0.0005
+# bGradientClipping = true
+# sDevice = gpu
+```
+
+Діагностика проблем:
+```bash
+python test_stability.py
+```
+
+### Параметри стабільності
+- `fLearningRate` - швидкість навчання (0.0005 для GPU, 0.001 для CPU)
+- `bGradientClipping` - обмеження градієнтів (true рекомендовано)
+
 ## Використання
 
 ### Перевірка пам'яті (рекомендовано)

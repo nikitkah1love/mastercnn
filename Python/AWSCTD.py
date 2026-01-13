@@ -71,6 +71,8 @@ nBatchSize = config.getint('MAIN', 'nBatchSize')  # Default 100
 nPatience = config.getint('MAIN', 'nPatience')  # Default 3
 nKFolds = config.getint('MAIN', 'nKFolds')  # Default 5
 bCategorical = config.getboolean('MAIN', 'bCategorical')  # Default false
+fLearningRate = config.getfloat('MAIN', 'fLearningRate', fallback=0.001)
+bGradientClipping = config.getboolean('MAIN', 'bGradientClipping', fallback=True)
 
 with open(m_sWorkingDir + 'config.ini', "r") as fIniFile:
     sConfig = fIniFile.read()
@@ -165,7 +167,7 @@ for train, test in kfold.split(Xtr, Ytr):
     print("KFold number: " + str(nFoldNumber))
     nFoldNumber += 1
     # Create model
-    model = AWSCTDCreateModel.CreateModelImpl(m_sModel, m_nWordCount, m_nClassCount, m_nParametersCount, bCategorical)
+    model = AWSCTDCreateModel.CreateModelImpl(m_sModel, m_nWordCount, m_nClassCount, m_nParametersCount, bCategorical, fLearningRate, bGradientClipping)
     startFit = time.time()
     # Train
     history = model.fit([Xtr[train]], Ytr[train], epochs=nEpochs, batch_size=nBatchSize, callbacks=callbacks_list, verbose=1)
@@ -270,7 +272,7 @@ print("Predicting time One : %.7f" % dTimePredForOneSample)
 
 print(" Acc: %.2f%% (+/- %.2f)" % (np.mean(arrAcc), np.std(arrAcc)))
 
-model = AWSCTDCreateModel.CreateModelImpl(m_sModel, m_nWordCount, m_nClassCount, m_nParametersCount, bCategorical)
+model = AWSCTDCreateModel.CreateModelImpl(m_sModel, m_nWordCount, m_nClassCount, m_nParametersCount, bCategorical, fLearningRate, bGradientClipping)
 
 sModel = str(model.to_json())
 dAcc = np.mean(arrAcc)
