@@ -17,14 +17,41 @@ from memory_monitor import MemoryMonitor
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.random.set_seed(0)
 
+m_sWorkingDir = os.getcwd()
+m_sWorkingDir = m_sWorkingDir + '/'
+
+# Read device configuration first
+config = ConfigParser()
+config.read(m_sWorkingDir + 'config.ini')
+sDevice = config.get('MAIN', 'sDevice', fallback='auto')
+
+# Configure device based on user preference
+if sDevice.lower() == 'cpu':
+    # Force CPU usage
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    print("🖥️  Примусово використовуємо CPU")
+elif sDevice.lower() == 'gpu':
+    # Force GPU usage (will fail if no GPU available)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if not gpus:
+        print("❌ GPU не знайдено, але в конфігурації вказано GPU")
+        quit()
+    print("🚀 Примусово використовуємо GPU")
+else:
+    # Auto mode (default behavior)
+    print("🔄 Автоматичний вибір пристрою")
+
 # Configure GPU if available
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
     try:
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
+        print(f"✅ Знайдено {len(gpus)} GPU пристроїв")
     except RuntimeError as e:
         print(e)
+else:
+    print("💻 Використовуємо CPU")
 
 # Ініціалізація моніторингу пам'яті
 memory_monitor = MemoryMonitor("training_memory.log")
@@ -54,8 +81,6 @@ else:
 import AWSCTDCreateModel
 import AWSCTDClearSesion
 
-m_sWorkingDir = os.getcwd()
-m_sWorkingDir = m_sWorkingDir + '/'
 print(m_sWorkingDir)
 
 config = ConfigParser()
