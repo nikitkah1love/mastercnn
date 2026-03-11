@@ -124,6 +124,41 @@ def CreateCNNS(nWordCount, nClassCount, nParametersCount, bCategorical):
     model = Model(inputs=[inputs], outputs=outputs)
     
     return model
+
+def CreateCNNS_Padded(nWordCount, nClassCount, nParametersCount, bCategorical):
+    print("AWSCTD-CNN-S-PADDED")
+    nSlidingWindow = 6
+    inputs = Input(shape=(nParametersCount, nWordCount))
+    # use_bias=False щоб padding не давав сигнал
+    CNN = Conv1D(filters=256, kernel_size=nSlidingWindow, padding='same', activation='tanh', use_bias=False)(inputs)
+    # GlobalAveragePooling краще для padding (0 не впливає на середнє)
+    pool = GlobalMaxPooling1D()(CNN)
+    outputs = AddLastDenseLayer(pool, bCategorical, nClassCount)
+    model = Model(inputs=[inputs], outputs=outputs)
+    
+    return model
+
+def CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical, nEmbeddingDim=8):
+    print("AWSCTD-CNN-S-EMBEDDING")
+    print(f"   Embedding dimension: {nEmbeddingDim}")
+    nSlidingWindow = 6
+    
+    # Input тепер приймає syscall IDs, а не one-hot vectors
+    inputs = Input(shape=(nParametersCount,), dtype='int32')
+    
+    # Embedding layer: nWordCount syscalls → nEmbeddingDim вимірів
+    embedding = Embedding(input_dim=nWordCount, output_dim=nEmbeddingDim, input_length=nParametersCount)(inputs)
+    
+    # use_bias=False для padding
+    CNN = Conv1D(filters=256, kernel_size=nSlidingWindow, padding='same', activation='tanh', use_bias=False)(embedding)
+    
+    # GlobalAveragePooling краще для padding
+    pool = GlobalAveragePooling1D()(CNN)
+    
+    outputs = AddLastDenseLayer(pool, bCategorical, nClassCount)
+    model = Model(inputs=[inputs], outputs=outputs)
+    
+    return model
 	
 def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategorical, fLearningRate=0.001, bGradientClipping=True):
     print("nWordCount: " + str(nWordCount))
@@ -147,6 +182,10 @@ def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategori
         model = CreateCNN(nWordCount, nClassCount, nParametersCount, bCategorical)
     elif sModel == "AWSCTD-CNN-S":
         model = CreateCNNS(nWordCount, nClassCount, nParametersCount, bCategorical)
+    elif sModel == "AWSCTD-CNN-S-PADDED":
+        model = CreateCNNS_Padded(nWordCount, nClassCount, nParametersCount, bCategorical)
+    elif sModel == "AWSCTD-CNN-S-EMBEDDING":
+        model = CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical)
 
     # Стабільний оптимізатор для GPU/CPU сумісності
     optimizer_kwargs = {
