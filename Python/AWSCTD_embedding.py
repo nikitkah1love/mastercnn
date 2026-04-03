@@ -2,9 +2,20 @@ import sys
 import os
 sys.path.insert(1, 'Utils')
 
-if len(sys.argv) != 4:
-    print("Parameters example: AWSCTD_embedding.py train_data.csv test_data.csv AWSCTD-CNN-S-EMBEDDING")
+if len(sys.argv) < 4 or len(sys.argv) > 6:
+    print("Parameters example: AWSCTD_embedding.py train_data.csv test_data.csv AWSCTD-CNN-S-EMBEDDING [--no-trace-aggregation] [--embedding-dim=16]")
     quit()
+
+# Перевірка чи потрібна агрегація по трейсам
+bTraceAggregation = False
+nEmbeddingDim = 16
+for arg in sys.argv[4:]:
+    if arg == '--no-trace-aggregation':
+        bTraceAggregation = False
+        print("⚠️  Агрегація по трейсам вимкнена")
+    elif arg.startswith('--embedding-dim='):
+        nEmbeddingDim = int(arg.split('=')[1])
+        print(f"📐 Embedding dimension: {nEmbeddingDim}")
 
 import tensorflow as tf
 import numpy as np
@@ -103,7 +114,7 @@ start = time.time()
 print("\n🎯 Тренування моделі з Embedding layer\n")
 
 # Create model
-model = AWSCTDCreateModel.CreateModelImpl(m_sModel, m_nWordCount, m_nClassCount, m_nParametersCount, bCategorical, fLearningRate, bGradientClipping)
+model = AWSCTDCreateModel.CreateModelImpl(m_sModel, m_nWordCount, m_nClassCount, m_nParametersCount, bCategorical, fLearningRate, bGradientClipping, nEmbeddingDim)
 
 startFit = time.time()
 # Train на всіх тренувальних даних
@@ -140,6 +151,45 @@ f1_window = f1_score(y_true_class, y_pred_class, average='macro', zero_division=
 # Confusion matrix для мультикласової класифікації
 cm_window = confusion_matrix(y_true_class, y_pred_class)
 
+# Зберігаємо heatmap confusion matrix
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def save_confusion_matrix_heatmap(cm, title, filename, class_names=None):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names, yticklabels=class_names)
+    plt.title(title)
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    plt.savefig(filename, dpi=150)
+    plt.close()
+    print(f"   💾 Heatmap збережено: {filename}")
+
+# Визначаємо назви класів
+class_names = None
+try:
+    from sklearn.preprocessing import LabelEncoder
+    import pandas as pd
+    df_tmp = pd.read_csv(m_sTestFile)
+    labels_tmp = df_tmp.iloc[:, -1].values
+    if not str(labels_tmp[0]).isdigit():
+        le = LabelEncoder()
+        le.fit(labels_tmp)
+        class_names = list(le.classes_)
+    del df_tmp, labels_tmp
+except:
+    pass
+
+# Генеруємо базову назву для файлів
+cm_base = os.path.splitext(os.path.basename(m_sTestFile))[0]
+os.makedirs('Python/CM', exist_ok=True)
+
+save_confusion_matrix_heatmap(cm_window, 'Window-based Confusion Matrix', f'Python/CM/cm_window_{cm_base}.png', class_names)
+
 print(f"\n📊 Window-based metrics:")
 print(f"   Accuracy:  {window_acc:.2f}%")
 print(f"   Precision: {precision_window:.4f} (macro)")
@@ -147,6 +197,32 @@ print(f"   Recall:    {recall_window:.4f} (macro)")
 print(f"   F1-Score:  {f1_window:.4f} (macro)")
 print(f"\n   Confusion Matrix:")
 print(cm_window)
+
+if not bTraceAggregation:
+    print("\n⚠️  Агрегація по трейсам пропущена (--no-trace-aggregation)")
+    end = time.time()
+    tmExec = end - start
+    
+    print("\n" + "="*70)
+    print("📈 ФІНАЛЬНІ РЕЗУЛЬТАТИ (EMBEDDING)")
+    print("="*70)
+    print(f"All time            : {tmExec:.2f}s")
+    print(f"Training time       : {tmExecFit:.2f}s")
+    print(f"Testing time        : {tmExecTest:.2f}s")
+    print()
+    print("Window-based metrics:")
+    print(f"  Accuracy:  {window_acc:.2f}%")
+    print(f"  Precision: {precision_window:.4f} (macro)")
+    print(f"  Recall:    {recall_window:.4f} (macro)")
+    print(f"  F1-Score:  {f1_window:.4f} (macro)")
+    print()
+    print(f"Loss: {scores[0]:.4f}")
+    print("="*70)
+    
+    print(f"\n✅ Train: {m_sTrainFile}")
+    print(f"✅ Test:  {m_sTestFile}")
+    print("\n✅ Тренування з Embedding завершено!")
+    quit()
 
 # Trace-based accuracy з агрегацією MEAN та MAX
 unique_traces_test = np.unique(trace_ids_test)
@@ -205,6 +281,7 @@ print(f"\n🎯 Trace-based metrics (MEAN aggregation):")
 
 # Confusion matrix
 cm_mean = confusion_matrix(trace_true, trace_pred_mean)
+save_confusion_matrix_heatmap(cm_mean, 'MEAN Aggregation Confusion Matrix', f'Python/CM/cm_mean_{cm_base}.png', class_names)
 
 # Метрики
 trace_acc_mean = np.mean(trace_pred_mean == trace_true) * 100
@@ -224,6 +301,7 @@ print(f"\n🎯 Trace-based metrics (MAX aggregation):")
 
 # Confusion matrix
 cm_max = confusion_matrix(trace_true, trace_pred_max)
+save_confusion_matrix_heatmap(cm_max, 'MAX Aggregation Confusion Matrix', f'Python/CM/cm_max_{cm_base}.png', class_names)
 
 # Метрики
 trace_acc_max = np.mean(trace_pred_max == trace_true) * 100

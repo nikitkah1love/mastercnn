@@ -127,7 +127,7 @@ def CreateCNNS(nWordCount, nClassCount, nParametersCount, bCategorical):
 
 def CreateCNNS_Padded(nWordCount, nClassCount, nParametersCount, bCategorical):
     print("AWSCTD-CNN-S-PADDED")
-    nSlidingWindow = 6
+    nSlidingWindow = 48
     inputs = Input(shape=(nParametersCount, nWordCount))
     # use_bias=False щоб padding не давав сигнал
     CNN = Conv1D(filters=256, kernel_size=nSlidingWindow, padding='same', activation='tanh', use_bias=False)(inputs)
@@ -138,7 +138,7 @@ def CreateCNNS_Padded(nWordCount, nClassCount, nParametersCount, bCategorical):
     
     return model
 
-def CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical, nEmbeddingDim=8):
+def CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical, nEmbeddingDim=16):
     print("AWSCTD-CNN-S-EMBEDDING")
     print(f"   Embedding dimension: {nEmbeddingDim}")
     nSlidingWindow = 6
@@ -160,7 +160,7 @@ def CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical
     
     return model
 	
-def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategorical, fLearningRate=0.001, bGradientClipping=True):
+def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategorical, fLearningRate=0.001, bGradientClipping=True, nEmbeddingDim=8):
     print("nWordCount: " + str(nWordCount))
     print("nClassCount: " + str(nClassCount))
     print("nParametersCount: " + str(nParametersCount))
@@ -185,7 +185,7 @@ def CreateModelImpl(sModel, nWordCount, nClassCount, nParametersCount, bCategori
     elif sModel == "AWSCTD-CNN-S-PADDED":
         model = CreateCNNS_Padded(nWordCount, nClassCount, nParametersCount, bCategorical)
     elif sModel == "AWSCTD-CNN-S-EMBEDDING":
-        model = CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical)
+        model = CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical, nEmbeddingDim)
 
     # Стабільний оптимізатор для GPU/CPU сумісності
     optimizer_kwargs = {

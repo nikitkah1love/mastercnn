@@ -74,12 +74,14 @@ def ReadDataWindowedImpl(sDataFile, bCategorical):
     Xtr = tf.keras.utils.to_categorical(Xtr).astype(np.int8)
     
     # Обробка лейблів
-    from sklearn.preprocessing import LabelBinarizer
-    encoder = LabelBinarizer()
-    Ytr = encoder.fit_transform(ytr)
-    
     if bCategorical:
-        Ytr = tf.keras.utils.to_categorical(Ytr).astype(np.int16)
+        # Для мультикласової класифікації просто робимо to_categorical
+        Ytr = tf.keras.utils.to_categorical(ytr, num_classes=nClassCount).astype(np.int16)
+    else:
+        # Для бінарної класифікації
+        from sklearn.preprocessing import LabelBinarizer
+        encoder = LabelBinarizer()
+        Ytr = encoder.fit_transform(ytr)
     
     print(f"✅ Дані готові:")
     print(f"   X shape: {Xtr.shape}")
@@ -89,7 +91,6 @@ def ReadDataWindowedImpl(sDataFile, bCategorical):
     del df
     del syscalls
     del labels
-    del encoder
     gc.collect()
     
     return Xtr, Ytr, trace_ids, nParametersCount, nClassCount, nWordCount

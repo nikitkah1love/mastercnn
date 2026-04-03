@@ -132,22 +132,57 @@ window_acc = np.mean(y_pred_class == y_true_class) * 100
 # Window-based метрики
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
-tn_window, fp_window, fn_window, tp_window = confusion_matrix(y_true_class, y_pred_class).ravel()
+# Для мультикласової класифікації використовуємо macro/weighted averaging
+precision_window = precision_score(y_true_class, y_pred_class, average='macro', zero_division=0)
+recall_window = recall_score(y_true_class, y_pred_class, average='macro', zero_division=0)
+f1_window = f1_score(y_true_class, y_pred_class, average='macro', zero_division=0)
 
-precision_window = precision_score(y_true_class, y_pred_class, zero_division=0)
-recall_window = recall_score(y_true_class, y_pred_class, zero_division=0)
-f1_window = f1_score(y_true_class, y_pred_class, zero_division=0)
-fpr_window = fp_window / (fp_window + tn_window) if (fp_window + tn_window) > 0 else 0
-fnr_window = fn_window / (fn_window + tp_window) if (fn_window + tp_window) > 0 else 0
+# Confusion matrix для мультикласової класифікації
+cm_window = confusion_matrix(y_true_class, y_pred_class)
+
+# Зберігаємо heatmap confusion matrix
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def save_confusion_matrix_heatmap(cm, title, filename, class_names=None):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names, yticklabels=class_names)
+    plt.title(title)
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    plt.savefig(filename, dpi=150)
+    plt.close()
+    print(f"   💾 Heatmap збережено: {filename}")
+
+class_names = None
+try:
+    from sklearn.preprocessing import LabelEncoder
+    import pandas as pd
+    df_tmp = pd.read_csv(m_sTestFile)
+    labels_tmp = df_tmp.iloc[:, -1].values
+    if not str(labels_tmp[0]).isdigit():
+        le = LabelEncoder()
+        le.fit(labels_tmp)
+        class_names = list(le.classes_)
+    del df_tmp, labels_tmp
+except:
+    pass
+
+cm_base = os.path.splitext(os.path.basename(m_sTestFile))[0]
+os.makedirs('Python/CM', exist_ok=True)
+save_confusion_matrix_heatmap(cm_window, 'Window-based Confusion Matrix', f'Python/CM/cm_window_{cm_base}.png', class_names)
 
 print(f"\n📊 Window-based metrics:")
 print(f"   Accuracy:  {window_acc:.2f}%")
-print(f"   Precision: {precision_window:.4f}")
-print(f"   Recall:    {recall_window:.4f}")
-print(f"   F1-Score:  {f1_window:.4f}")
-print(f"   FPR:       {fpr_window:.4f}")
-print(f"   FNR:       {fnr_window:.4f}")
-print(f"   TP: {tp_window}, TN: {tn_window}, FP: {fp_window}, FN: {fn_window}")
+print(f"   Precision: {precision_window:.4f} (macro)")
+print(f"   Recall:    {recall_window:.4f} (macro)")
+print(f"   F1-Score:  {f1_window:.4f} (macro)")
+print(f"\n   Confusion Matrix:")
+print(cm_window)
 
 # Trace-based accuracy з агрегацією MEAN та MAX
 unique_traces_test = np.unique(trace_ids_test)
@@ -205,45 +240,41 @@ trace_true = np.array(trace_true)
 print(f"\n🎯 Trace-based metrics (MEAN aggregation):")
 
 # Confusion matrix
-tn_mean, fp_mean, fn_mean, tp_mean = confusion_matrix(trace_true, trace_pred_mean).ravel()
+cm_mean = confusion_matrix(trace_true, trace_pred_mean)
+save_confusion_matrix_heatmap(cm_mean, 'MEAN Aggregation Confusion Matrix', f'Python/CM/cm_mean_{cm_base}.png', class_names)
 
 # Метрики
 trace_acc_mean = np.mean(trace_pred_mean == trace_true) * 100
-precision_mean = precision_score(trace_true, trace_pred_mean, zero_division=0)
-recall_mean = recall_score(trace_true, trace_pred_mean, zero_division=0)
-f1_mean = f1_score(trace_true, trace_pred_mean, zero_division=0)
-fpr_mean = fp_mean / (fp_mean + tn_mean) if (fp_mean + tn_mean) > 0 else 0
-fnr_mean = fn_mean / (fn_mean + tp_mean) if (fn_mean + tp_mean) > 0 else 0
+precision_mean = precision_score(trace_true, trace_pred_mean, average='macro', zero_division=0)
+recall_mean = recall_score(trace_true, trace_pred_mean, average='macro', zero_division=0)
+f1_mean = f1_score(trace_true, trace_pred_mean, average='macro', zero_division=0)
 
 print(f"   Accuracy:  {trace_acc_mean:.2f}%")
-print(f"   Precision: {precision_mean:.4f}")
-print(f"   Recall:    {recall_mean:.4f}")
-print(f"   F1-Score:  {f1_mean:.4f}")
-print(f"   FPR:       {fpr_mean:.4f}")
-print(f"   FNR:       {fnr_mean:.4f}")
-print(f"   TP: {tp_mean}, TN: {tn_mean}, FP: {fp_mean}, FN: {fn_mean}")
+print(f"   Precision: {precision_mean:.4f} (macro)")
+print(f"   Recall:    {recall_mean:.4f} (macro)")
+print(f"   F1-Score:  {f1_mean:.4f} (macro)")
+print(f"\n   Confusion Matrix:")
+print(cm_mean)
 
 # Обчислюємо метрики для MAX агрегації
 print(f"\n🎯 Trace-based metrics (MAX aggregation):")
 
 # Confusion matrix
-tn_max, fp_max, fn_max, tp_max = confusion_matrix(trace_true, trace_pred_max).ravel()
+cm_max = confusion_matrix(trace_true, trace_pred_max)
+save_confusion_matrix_heatmap(cm_max, 'MAX Aggregation Confusion Matrix', f'Python/CM/cm_max_{cm_base}.png', class_names)
 
 # Метрики
 trace_acc_max = np.mean(trace_pred_max == trace_true) * 100
-precision_max = precision_score(trace_true, trace_pred_max, zero_division=0)
-recall_max = recall_score(trace_true, trace_pred_max, zero_division=0)
-f1_max = f1_score(trace_true, trace_pred_max, zero_division=0)
-fpr_max = fp_max / (fp_max + tn_max) if (fp_max + tn_max) > 0 else 0
-fnr_max = fn_max / (fn_max + tp_max) if (fn_max + tp_max) > 0 else 0
+precision_max = precision_score(trace_true, trace_pred_max, average='macro', zero_division=0)
+recall_max = recall_score(trace_true, trace_pred_max, average='macro', zero_division=0)
+f1_max = f1_score(trace_true, trace_pred_max, average='macro', zero_division=0)
 
 print(f"   Accuracy:  {trace_acc_max:.2f}%")
-print(f"   Precision: {precision_max:.4f}")
-print(f"   Recall:    {recall_max:.4f}")
-print(f"   F1-Score:  {f1_max:.4f}")
-print(f"   FPR:       {fpr_max:.4f}")
-print(f"   FNR:       {fnr_max:.4f}")
-print(f"   TP: {tp_max}, TN: {tn_max}, FP: {fp_max}, FN: {fn_max}")
+print(f"   Precision: {precision_max:.4f} (macro)")
+print(f"   Recall:    {recall_max:.4f} (macro)")
+print(f"   F1-Score:  {f1_max:.4f} (macro)")
+print(f"\n   Confusion Matrix:")
+print(cm_max)
 
 end = time.time()
 tmExec = end - start
@@ -257,27 +288,21 @@ print(f"Testing time        : {tmExecTest:.2f}s")
 print()
 print("Window-based metrics:")
 print(f"  Accuracy:  {window_acc:.2f}%")
-print(f"  Precision: {precision_window:.4f}")
-print(f"  Recall:    {recall_window:.4f}")
-print(f"  F1-Score:  {f1_window:.4f}")
-print(f"  FPR:       {fpr_window:.4f}")
-print(f"  FNR:       {fnr_window:.4f}")
+print(f"  Precision: {precision_window:.4f} (macro)")
+print(f"  Recall:    {recall_window:.4f} (macro)")
+print(f"  F1-Score:  {f1_window:.4f} (macro)")
 print()
 print("MEAN Aggregation:")
 print(f"  Accuracy:  {trace_acc_mean:.2f}%")
-print(f"  Precision: {precision_mean:.4f}")
-print(f"  Recall:    {recall_mean:.4f}")
-print(f"  F1-Score:  {f1_mean:.4f}")
-print(f"  FPR:       {fpr_mean:.4f}")
-print(f"  FNR:       {fnr_mean:.4f}")
+print(f"  Precision: {precision_mean:.4f} (macro)")
+print(f"  Recall:    {recall_mean:.4f} (macro)")
+print(f"  F1-Score:  {f1_mean:.4f} (macro)")
 print()
 print("MAX Aggregation:")
 print(f"  Accuracy:  {trace_acc_max:.2f}%")
-print(f"  Precision: {precision_max:.4f}")
-print(f"  Recall:    {recall_max:.4f}")
-print(f"  F1-Score:  {f1_max:.4f}")
-print(f"  FPR:       {fpr_max:.4f}")
-print(f"  FNR:       {fnr_max:.4f}")
+print(f"  Precision: {precision_max:.4f} (macro)")
+print(f"  Recall:    {recall_max:.4f} (macro)")
+print(f"  F1-Score:  {f1_max:.4f} (macro)")
 print()
 print(f"Loss: {scores[0]:.4f}")
 print("="*70)
