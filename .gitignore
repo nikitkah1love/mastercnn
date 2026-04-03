@@ -17,7 +17,7 @@ Python/ACCLOSS/*.svg
 Python/CM
 Python/Model/*.svg
 Python/ROC/*.svg
-CSV
+CSV/*
 Python/*.csv
 
 # IDE
