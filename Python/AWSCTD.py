@@ -155,6 +155,8 @@ for train, test in kfold.split(Xtr, Ytr):
     nFoldNumber += 1
     # Create model
     model = AWSCTDCreateModel.CreateModelImpl(m_sModel, m_nWordCount, m_nClassCount, m_nParametersCount, bCategorical, fLearningRate, bGradientClipping)
+    # Fresh callbacks for each fold
+    callbacks_list = [EarlyStopping(monitor=sMonitor, patience=nPatience, verbose=1)]
     startFit = time.time()
     # Train
     history = model.fit([Xtr[train]], Ytr[train], epochs=nEpochs, batch_size=nBatchSize, callbacks=callbacks_list, verbose=1)
@@ -326,8 +328,13 @@ save_confusion_matrix_heatmap(cm, f'Confusion Matrix ({m_sModel})', f'Python/CM/
 # Generate ROC figures
 if bCategorical:
     sERR = ""
-    arrClassNames = ("Benign", "Malware")
+    # Динамічно визначаємо назви класів
+    if heatmap_class_names and len(heatmap_class_names) == m_nClassCount:
+        arrClassNames = heatmap_class_names
+    else:
+        arrClassNames = [f"Class_{i}" for i in range(m_nClassCount)]
     import ntpath
+    os.makedirs(m_sWorkingDir + 'ROC', exist_ok=True)
     for x in range(m_nClassCount):
         plt.figure(x)
         # plt.plot([0, 1], [0, 1], linestyle='--', lw=1, color='r', label='Chance', alpha=.3)
