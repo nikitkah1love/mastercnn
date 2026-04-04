@@ -1,0 +1,2 @@
+Dataset,Accuracy,Precision,Recall,F1,FPR,FNR,Loss,Train_Time,Test_Time
+dataset_n10,42.79,0.477,0.4386,0.4288,0.523,0.5614,1.6496,0.91,0.23

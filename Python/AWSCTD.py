@@ -293,12 +293,9 @@ cur.execute(sql, result)
 con.commit()
 
 AWSCTDPlotAcc.plot_acc_loss(model_history, m_sModel, m_sDataFile, bCategorical, m_sWorkingDir)
-AWSCTDPlotCM.plot_cm(cm, m_sModel, m_nClassCount, m_sDataFile, m_sWorkingDir)
 
-# Heatmap confusion matrix
+# Heatmap confusion matrix (як в AWSCTD_embedding.py)
 import seaborn as sns
-import matplotlib
-matplotlib.use('Agg')
 
 def save_confusion_matrix_heatmap(cm, title, filename, class_names=None):
     plt.figure(figsize=(10, 8))
@@ -312,7 +309,8 @@ def save_confusion_matrix_heatmap(cm, title, filename, class_names=None):
     plt.close()
     print(f"   💾 Heatmap збережено: {filename}")
 
-heatmap_class_names = None
+# Визначаємо назви класів
+class_names = None
 try:
     from sklearn.preprocessing import LabelEncoder
     import pandas as pd
@@ -321,14 +319,16 @@ try:
     if not str(labels_tmp[0]).isdigit():
         le = LabelEncoder()
         le.fit(labels_tmp)
-        heatmap_class_names = list(le.classes_)
+        class_names = list(le.classes_)
     del df_tmp, labels_tmp
 except:
     pass
 
+# Генеруємо базову назву для файлів
 cm_base = os.path.splitext(os.path.basename(m_sDataFile))[0]
 os.makedirs('Python/CM', exist_ok=True)
-save_confusion_matrix_heatmap(cm, f'Confusion Matrix ({m_sModel})', f'Python/CM/cm_heatmap_{cm_base}.png', heatmap_class_names)
+
+save_confusion_matrix_heatmap(cm, f'Confusion Matrix ({m_sModel})', f'Python/CM/cm_heatmap_{cm_base}.png', class_names)
 
 # Обчислення метрик з confusion matrix
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -379,8 +379,8 @@ print(f"💾 Метрики збережено у {metrics_csv}")
 if bCategorical:
     sERR = ""
     # Динамічно визначаємо назви класів
-    if heatmap_class_names and len(heatmap_class_names) == m_nClassCount:
-        arrClassNames = heatmap_class_names
+    if class_names and len(class_names) == m_nClassCount:
+        arrClassNames = class_names
     else:
         arrClassNames = [f"Class_{i}" for i in range(m_nClassCount)]
     import ntpath
