@@ -309,7 +309,7 @@ heatmap_class_names = None
 try:
     from sklearn.preprocessing import LabelEncoder
     import pandas as pd
-    df_tmp = pd.read_csv(m_sDataFile)
+    df_tmp = pd.read_csv(m_sDataFile, header=None)
     labels_tmp = df_tmp.iloc[:, -1].values
     if not str(labels_tmp[0]).isdigit():
         le = LabelEncoder()
