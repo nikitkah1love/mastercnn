@@ -144,22 +144,9 @@ from collections import defaultdict
 
 plt.rcParams['svg.fonttype'] = 'none'
 
-tprs = {}
-aucs = {}
-EER  = {}
-
-if m_nClassCount == 5:
-	tprs = {0:[], 1:[], 2:[], 3:[], 4:[]}
-	aucs = {0:[], 1:[], 2:[], 3:[], 4:[]}
-	EER  = {0:[], 1:[], 2:[], 3:[], 4:[]}
-elif m_nClassCount == 6:
-	tprs = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[]}
-	aucs = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[]}
-	EER  = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[]}
-elif m_nClassCount == 2:
-	tprs = {0:[], 1:[]}
-	aucs = {0:[], 1:[]}
-	EER  = {0:[], 1:[]}
+tprs = {i: [] for i in range(m_nClassCount)}
+aucs = {i: [] for i in range(m_nClassCount)}
+EER  = {i: [] for i in range(m_nClassCount)}
 
 mean_fpr = np.linspace(0, 1, 100)
 
@@ -300,6 +287,41 @@ con.commit()
 
 AWSCTDPlotAcc.plot_acc_loss(model_history, m_sModel, m_sDataFile, bCategorical, m_sWorkingDir)
 AWSCTDPlotCM.plot_cm(cm, m_sModel, m_nClassCount, m_sDataFile, m_sWorkingDir)
+
+# Heatmap confusion matrix
+import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
+
+def save_confusion_matrix_heatmap(cm, title, filename, class_names=None):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names, yticklabels=class_names)
+    plt.title(title)
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    plt.savefig(filename, dpi=150)
+    plt.close()
+    print(f"   💾 Heatmap збережено: {filename}")
+
+heatmap_class_names = None
+try:
+    from sklearn.preprocessing import LabelEncoder
+    import pandas as pd
+    df_tmp = pd.read_csv(m_sDataFile)
+    labels_tmp = df_tmp.iloc[:, -1].values
+    if not str(labels_tmp[0]).isdigit():
+        le = LabelEncoder()
+        le.fit(labels_tmp)
+        heatmap_class_names = list(le.classes_)
+    del df_tmp, labels_tmp
+except:
+    pass
+
+cm_base = os.path.splitext(os.path.basename(m_sDataFile))[0]
+os.makedirs('Python/CM', exist_ok=True)
+save_confusion_matrix_heatmap(cm, f'Confusion Matrix ({m_sModel})', f'Python/CM/cm_heatmap_{cm_base}.png', heatmap_class_names)
 
 # Generate ROC figures
 if bCategorical:

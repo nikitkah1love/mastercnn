@@ -37,11 +37,7 @@ def ReadDataImpl(sDataFile, bCategorical):
     
     from sklearn.preprocessing import LabelBinarizer
     encoder = LabelBinarizer()
-    Ytr = encoder.fit_transform(ytr)
-    
-    # Used to convert data to categorical
-    if bCategorical:
-        Ytr = tf.keras.utils.to_categorical(Ytr).astype(np.int16)  # [0, 1]
+    Ytr = encoder.fit_transform(ytr).astype(np.int16)
     
     del dbTrain
     del encoder
