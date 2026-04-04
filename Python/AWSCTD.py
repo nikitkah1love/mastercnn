@@ -117,8 +117,13 @@ arrMae  = []
 arrTimeFit = []
 arrTimeTest = []
 arrTimePredict = []
-from sklearn.model_selection import KFold
-kfold = KFold(n_splits=nKFolds, shuffle=True)
+from sklearn.model_selection import StratifiedKFold
+# Лейбли для стратифікації (одновимірні)
+if bCategorical:
+    y_stratify = np.argmax(Ytr, axis=1)
+else:
+    y_stratify = Ytr.ravel()
+kfold = StratifiedKFold(n_splits=nKFolds, shuffle=True)
 
 from time import gmtime, strftime
 sTime = strftime("%Y-%m-%d %H:%M:%S", gmtime())
@@ -150,7 +155,7 @@ EER  = {i: [] for i in range(m_nClassCount)}
 
 mean_fpr = np.linspace(0, 1, 100)
 
-for train, test in kfold.split(Xtr, Ytr):
+for train, test in kfold.split(Xtr, y_stratify):
     print("KFold number: " + str(nFoldNumber))
     nFoldNumber += 1
     # Create model
@@ -324,6 +329,51 @@ except:
 cm_base = os.path.splitext(os.path.basename(m_sDataFile))[0]
 os.makedirs('Python/CM', exist_ok=True)
 save_confusion_matrix_heatmap(cm, f'Confusion Matrix ({m_sModel})', f'Python/CM/cm_heatmap_{cm_base}.png', heatmap_class_names)
+
+# Обчислення метрик з confusion matrix
+from sklearn.metrics import precision_score, recall_score, f1_score
+cm_true = []
+cm_pred = []
+for i in range(cm.shape[0]):
+    for j in range(cm.shape[1]):
+        cm_true.extend([i] * cm[i, j])
+        cm_pred.extend([j] * cm[i, j])
+
+precision_macro = precision_score(cm_true, cm_pred, average='macro', zero_division=0)
+recall_macro = recall_score(cm_true, cm_pred, average='macro', zero_division=0)
+f1_macro = f1_score(cm_true, cm_pred, average='macro', zero_division=0)
+fnr_macro = 1.0 - recall_macro
+fpr_macro = 1.0 - precision_macro
+
+# Виведення метрик
+print(f"\nAccuracy:  {dAcc:.2f}%")
+print(f"Precision: {precision_macro:.4f} (macro)")
+print(f"Recall:    {recall_macro:.4f} (macro)")
+print(f"F1-Score:  {f1_macro:.4f} (macro)")
+print(f"Loss:      {dLoss:.4f}")
+print(f"Training time  : {dTimeTrain:.2f}s")
+print(f"Testing time   : {dTimeTest:.2f}s")
+
+# Збереження метрик у CSV
+import csv as csv_module
+metrics_csv = f'Python/Metrics/{cm_base}_metrics.csv'
+os.makedirs('Python/Metrics', exist_ok=True)
+with open(metrics_csv, 'w', newline='') as f:
+    writer = csv_module.DictWriter(f, fieldnames=['Dataset', 'Accuracy', 'Precision', 'Recall', 'F1', 'FPR', 'FNR', 'Loss', 'Train_Time', 'Test_Time'])
+    writer.writeheader()
+    writer.writerow({
+        'Dataset': cm_base,
+        'Accuracy': round(dAcc, 2),
+        'Precision': round(precision_macro, 4),
+        'Recall': round(recall_macro, 4),
+        'F1': round(f1_macro, 4),
+        'FPR': round(fpr_macro, 4),
+        'FNR': round(fnr_macro, 4),
+        'Loss': round(dLoss, 4),
+        'Train_Time': round(dTimeTrain, 2),
+        'Test_Time': round(dTimeTest, 2)
+    })
+print(f"💾 Метрики збережено у {metrics_csv}")
 
 # Generate ROC figures
 if bCategorical:
