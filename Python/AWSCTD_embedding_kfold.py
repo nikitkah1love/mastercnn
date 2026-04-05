@@ -265,7 +265,7 @@ except:
 
 cm_base = os.path.splitext(os.path.basename(m_sDataFile))[0]
 os.makedirs('Python/CM', exist_ok=True)
-save_confusion_matrix_heatmap(cm, f'Window-based CM - {m_sModel} (KFold)', f'Python/CM/cm_kfold_window_{cm_base}.png', class_names)
+save_confusion_matrix_heatmap(cm, f'Window-based CM - {m_sModel} Embedded (KFold)', f'Python/CM/cm_embedded_kfold_window_{cm_base}.png', class_names)
 
 # Trace aggregation heatmaps та метрики
 if bTraceAggregation:
@@ -280,7 +280,7 @@ if bTraceAggregation:
     recall_mean = recall_score(cm_true_mean, cm_pred_mean, average='macro', zero_division=0)
     f1_mean = f1_score(cm_true_mean, cm_pred_mean, average='macro', zero_division=0)
 
-    save_confusion_matrix_heatmap(cm_mean_total, f'MEAN Aggregation CM - {m_sModel} (KFold)', f'Python/CM/cm_kfold_mean_{cm_base}.png', class_names)
+    save_confusion_matrix_heatmap(cm_mean_total, f'MEAN Aggregation CM - {m_sModel} Embedded (KFold)', f'Python/CM/cm_embedded_kfold_mean_{cm_base}.png', class_names)
 
     # MAX
     cm_true_max = []
@@ -293,12 +293,12 @@ if bTraceAggregation:
     recall_max = recall_score(cm_true_max, cm_pred_max, average='macro', zero_division=0)
     f1_max = f1_score(cm_true_max, cm_pred_max, average='macro', zero_division=0)
 
-    save_confusion_matrix_heatmap(cm_max_total, f'MAX Aggregation CM - {m_sModel} (KFold)', f'Python/CM/cm_kfold_max_{cm_base}.png', class_names)
+    save_confusion_matrix_heatmap(cm_max_total, f'MAX Aggregation CM - {m_sModel} Embedded (KFold)', f'Python/CM/cm_embedded_kfold_max_{cm_base}.png', class_names)
 
 # Збереження метрик у CSV
 import csv as csv_module
 os.makedirs('Python/Metrics', exist_ok=True)
-metrics_csv = f'Python/Metrics/{cm_base}_kfold_metrics.csv'
+metrics_csv = f'Python/Metrics/{cm_base}_embedded_kfold_metrics.csv'
 
 fieldnames = ['Dataset', 'Type', 'Accuracy', 'AccStd', 'Precision', 'Recall', 'F1', 'FPR', 'FNR', 'Loss', 'Train_Time', 'Test_Time']
 with open(metrics_csv, 'w', newline='') as f:
