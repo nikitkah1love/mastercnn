@@ -143,18 +143,10 @@ def CreateCNNS_Embedding(nWordCount, nClassCount, nParametersCount, bCategorical
     print(f"   Embedding dimension: {nEmbeddingDim}")
     nSlidingWindow = 6
     
-    # Input тепер приймає syscall IDs, а не one-hot vectors
     inputs = Input(shape=(nParametersCount,), dtype='int32')
-    
-    # Embedding layer: nWordCount syscalls → nEmbeddingDim вимірів
     embedding = Embedding(input_dim=nWordCount, output_dim=nEmbeddingDim, input_length=nParametersCount)(inputs)
-    
-    # use_bias=False для padding
-    CNN = Conv1D(filters=256, kernel_size=nSlidingWindow, padding='same', activation='tanh', use_bias=False)(embedding)
-    
-    # GlobalAveragePooling краще для padding
-    pool = GlobalAveragePooling1D()(CNN)
-    
+    CNN = Conv1D(filters=256, kernel_size=nSlidingWindow, padding='same', activation='tanh')(embedding)
+    pool = GlobalMaxPooling1D()(CNN)
     outputs = AddLastDenseLayer(pool, bCategorical, nClassCount)
     model = Model(inputs=[inputs], outputs=outputs)
     
