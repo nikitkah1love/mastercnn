@@ -320,9 +320,11 @@ try:
         le = LabelEncoder()
         le.fit(labels_tmp)
         class_names = list(le.classes_)
+    else:
+        class_names = [str(c) for c in sorted(np.unique(labels_tmp))]
     del df_tmp, labels_tmp
 except:
-    pass
+    class_names = [str(i) for i in range(m_nClassCount)]
 
 # Генеруємо базову назву для файлів
 cm_base = os.path.splitext(os.path.basename(m_sDataFile))[0]
